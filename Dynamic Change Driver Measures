@@ -1,0 +1,61 @@
+ShipmentsConversion_PreviousChangeDriver = 
+VAR CurrentDay = MAX('ShippingCalendar'[Date])
+VAR StartDate = 
+    { 
+        CurrentDay - 7, 
+        CurrentDay - 14, 
+        CurrentDay - 21 
+    }
+
+VAR NumDays = 3
+
+VAR LookbackBookedShipments = 
+    CALCULATE(
+        [TotalBookedShipments],
+        FILTER(
+            ALL('ShippingCalendar'), 
+            'ShippingCalendar'[Date] IN StartDate
+        )
+    )
+
+VAR LookbackCompletedShipments = 
+    CALCULATE(
+        [TotalCompletedShipments],
+        FILTER(
+            ALL('ShippingCalendar'), 
+            'ShippingCalendar'[Date] IN StartDate
+        )
+    )
+
+VAR LookbackALLBooked = 
+    CALCULATE(
+        [TotalBookedShipments],
+        FILTER(
+            ALL('ShippingCalendar'), 
+            'ShippingCalendar'[Date] IN StartDate
+        ),
+        REMOVEFILTERS('ShippingMetrics'[ClientName], 'ShippingMetrics'[PortOfLoading], 'ShippingMetrics'[PortOfDischarge], 'ShippingMetrics'[CargoType],'ShippingMetrics'[ServiceLevel]) -- Preserve context
+    )
+
+VAR LookbackAllCompleted = 
+    CALCULATE(
+        [TotalCompletedShipments],
+        FILTER(
+            ALL('ShippingCalendar'), 
+            'ShippingCalendar'[Date] IN StartDate
+        ),
+        REMOVEFILTERS('ShippingMetrics'[ClientName], 'ShippingMetrics'[PortOfLoading], 'ShippingMetrics'[PortOfDischarge], 'ShippingMetrics'[CargoType],'ShippingMetrics'[ServiceLevel]) -- Preserve context
+    )
+
+VAR LookbackCompletionRate = 
+    CALCULATE(
+        DIVIDE([TotalCompletedShipments], [TotalBookedShipments]),
+        FILTER(
+            ALL('ShippingCalendar'), 
+            'ShippingCalendar'[Date] IN StartDate
+        ),
+        REMOVEFILTERS('ShippingMetrics'[ClientName], 'ShippingMetrics'[PortOfLoading], 'ShippingMetrics'[PortOfDischarge], 'ShippingMetrics'[CargoType],'ShippingMetrics'[ServiceLevel]) -- Preserve context
+    )
+
+RETURN
+((((LookbackBookedShipments/NumDays)*(LookbackCompletionRate))-(LookbackCompletedShipments/NumDays)+(LookbackAllCompleted/NumDays))/(LookbackALLBooked/NumDays))-LookbackCompletionRate
